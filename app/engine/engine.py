@@ -38,6 +38,7 @@ class Template:
     def render(self, data: Dict[str, object], options: Optional[List[str]]) -> io.BytesIO:
         rendered = self.__apply_template(data)
         # if need pdf conversion
-        if options is not None and 'pdf' in options:
+        # if options is not None and 'pdf' in options:
+        if True:
             rendered = pdfkit.from_string(rendered, output_path=False)
         return BytesIO.of(rendered)

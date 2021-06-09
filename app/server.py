@@ -87,12 +87,13 @@ def publipost(body: PublipostBody):
             )
         # always render to pdf now
         output = db.render_template(body.template_name, body.data, options)
-        length = len(output.getvalue())
-        output.seek(0)
         if push_result:
             # should make abstraction to push the result here
+            length = len(output.getvalue())
+            output.seek(0)
             context.s3_client.put_object(
-                body.output_bucket, body.output_name, output, length=length)
+                body.output_bucket, body.output_name, output, length=length
+            )
             response = {'error': False}
         else:
             # not used for now
