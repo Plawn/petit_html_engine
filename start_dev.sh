@@ -1,0 +1,1 @@
+uvicorn app.server:app --port 3005
