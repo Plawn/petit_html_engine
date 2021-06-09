@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import io
 import logging
 import traceback
 from typing import Dict, List
@@ -75,7 +74,7 @@ def publipost(body: PublipostBody):
     response = {'error': True}, 500
     try:
         # don't actually know if will get used
-        options = body.options or []
+        options = body.options or ['pdf']
         # push_result = body.get('push_result', True)
         # TODO:
         push_result = True
@@ -86,7 +85,8 @@ def publipost(body: PublipostBody):
                 # template_name is same as exposed_as here
                 body.template_name,
             )
-        output = db.render_template(body.template_name, body.data)
+        # always render to pdf now
+        output = db.render_template(body.template_name, body.data, options)
         length = len(output.getvalue())
         output.seek(0)
         if push_result:

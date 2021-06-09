@@ -1,11 +1,20 @@
 import io
-from typing import Dict, List
+from typing import Dict, List, Optional
 
+import pdfkit
 from jinja2 import Template as JinjaTemplate
 
 from .get_placeholder import get_placeholder
-import pdfkit
+
 local_funcs: List[str] = []
+
+
+class BytesIO(io.BytesIO):
+    @staticmethod
+    def of(content: bytes):
+        f = io.BytesIO()
+        f.write(content)
+        return f
 
 
 class Template:
@@ -26,8 +35,9 @@ class Template:
         """
         return self.template.render(data)
 
-    def render(self, data: Dict[str, object]) -> io.BytesIO:
-        result = pdfkit.from_string(self.__apply_template(data), output_path=False)
-        _file = io.BytesIO()
-        _file.write(result)
-        return _file
+    def render(self, data: Dict[str, object], options: Optional[List[str]]) -> io.BytesIO:
+        rendered = self.__apply_template(data)
+        # if need pdf conversion
+        if options is not None and 'pdf' in options:
+            rendered = pdfkit.from_string(rendered, output_path=False)
+        return BytesIO.of(rendered)

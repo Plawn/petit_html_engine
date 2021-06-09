@@ -23,8 +23,8 @@ class TemplateDB:
     def set_s3_client(self, client: Minio) -> None:
         self.__s3_client = client
 
-    def render_template(self, exposed_as: str, data: dict) -> io.BytesIO:
-        return self.__templates[exposed_as].templater.render(data)
+    def render_template(self, exposed_as: str, data: dict, options: Optional[List[str]]) -> io.BytesIO:
+        return self.__templates[exposed_as].templater.render(data, options)
 
     def delete_template(self, exposed_as:str) -> None:
         del self.__templates[exposed_as]

@@ -1,5 +1,7 @@
+# maybe souldn't install all
 fastapi[all]
 uvicorn
 minio
-docxtpl==0.8.1
-python-docx==0.8.10
+
+pdfkit
+jinja2
