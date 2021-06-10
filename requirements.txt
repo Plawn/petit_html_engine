@@ -1,2 +1,3 @@
 pdfkit
 jinja2
+petit_python_publipost_connector>=0.1.1
