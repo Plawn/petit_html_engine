@@ -1,7 +1,2 @@
-# maybe souldn't install all
-fastapi[all]
-uvicorn
-minio
-
 pdfkit
 jinja2
