@@ -1,127 +1,77 @@
-from __future__ import annotations
+import io
+import re
+from typing import Dict, List, Optional
 
-import logging
-import traceback
-from typing import Dict, List
+import pdfkit
+from jinja2 import Template as JinjaTemplate
+from petit_python_publipost_connector import Template as BaseTemplate, make_connector
 
-import minio
-from fastapi import FastAPI
-from fastapi.responses import Response
-
-from .datastructure import (GlobalContext, LoadTemplateBody, MinioCnfigure,
-                            PublipostBody, S3Path)
-from .template_db import TemplateDB
-
-context = GlobalContext()
-
-# in memory database
-# rebuilded at each boot
-db = TemplateDB()
+local_funcs: List[str] = []
 
 
-app = FastAPI()
+def extract_variable(var: str):
+    """Extracts variable and removes some stuff
+    """
+    # remove the '(' and ')'
+    r = var.split('+')
+    r = [
+        i
+        .replace('(', "")
+        .replace(')', "")
+        .strip()
+        for i in r if '"' not in i
+    ]
+    return r
 
 
-@app.post('/configure')
-def configure(data: MinioCnfigure):
-    try:
-        # TODO: should have an S3 interface here
-        minio_client = minio.Minio(
-            data.host, data.access_key, data.pass_key, secure=data.secure)
-        # checking that the instance is correct
-        minio_client.list_buckets()
-        context.s3_client = minio_client
-        db.set_s3_client(minio_client)
-        return {'error': False}, 200
-    except:
-        return {'error': True}, 400
+def get_placeholder(text: str, local_funcs: List[str]) -> List[str]:
+    for name in local_funcs:
+        text = text.replace(name, '')
+    # finding between {{ }}
+    res: List[str] = re.findall(
+        r"\{{(.*?)\}}", text, re.MULTILINE
+    )
+    # finding between {% %}
+    res2 = []
+    for i in res:
+        res2.extend(extract_variable(i.strip()))
+    return res2
 
 
-@app.post('/load_templates')
-def load_template(data: List[LoadTemplateBody]):
-    success = []
-    failed = []
-    for template_infos in data:
-        try:
-            template = db.add_template(S3Path(
-                template_infos.bucket_name, template_infos.template_name
-            ),
-                template_infos.exposed_as
-            )
-            success.append({
-                'template_name': template_infos.exposed_as,
-                'fields': template.fields
-            })
-        except:
-            logging.error(traceback.format_exc())
-            failed.append(
-                {'template_name': template_infos.exposed_as}
-            )
-    return {
-        'success': success,
-        'failed': failed
-    }
+class BytesIO(io.BytesIO):
+    @staticmethod
+    def of(content: bytes):
+        f = io.BytesIO()
+        f.write(content)
+        return f
 
 
-@app.post('/get_placeholders')
-def get_placeholders(data: Dict[str, str]) -> List[str]:
-    return db.get_fields(data['name'])
+class Template(BaseTemplate):
+
+    def __init__(self, _file: io.BytesIO):
+        self.fields: List[str] = list()
+        self.content = _file.getvalue().decode('utf-8')
+        self.template = JinjaTemplate(self.content)
+        self.__load_fields()
+
+    def __load_fields(self):
+        self.fields = fields = get_placeholder(self.content, local_funcs)
+        return fields
+
+    def __apply_template(self, data: Dict[str, str]) -> str:
+        """
+        Applies the data to the template and returns a `Template`
+        """
+        return self.template.render(data)
+
+    def render(self, data: Dict[str, object], options: Optional[List[str]]) -> io.BytesIO:
+        rendered = self.__apply_template(data)
+        # if need pdf conversion
+        # if options is not None and 'pdf' in options:
+        if True:
+            rendered = pdfkit.from_string(rendered, output_path=False)
+        return BytesIO.of(rendered)
 
 
-@app.post('/publipost')
-def publipost(body: PublipostBody):
-    output = None
-    response = {'error': True}, 500
-    try:
-        # don't actually know if will get used
-        options = body.options or ['pdf']
-        # push_result = body.get('push_result', True)
-        # TODO:
-        push_result = True
-        if body.template_name not in db.get_containers():
-            db.add_template(S3Path(
-                body.bucket_name, body.r_template_name,
-            ),
-                # template_name is same as exposed_as here
-                body.template_name,
-            )
-        # always render to pdf now
-        output = db.render_template(body.template_name, body.data, options)
-        if push_result:
-            # should make abstraction to push the result here
-            length = len(output.getvalue())
-            output.seek(0)
-            context.s3_client.put_object(
-                body.output_bucket, body.output_name, output, length=length
-            )
-            response = {'error': False}
-        else:
-            # not used for now
-            # should push the file back
-            response = {'result': 'OK'}
-    except Exception as e:
-        logging.error(traceback.format_exc())
 
-    return response
-
-
-@app.get('/list')
-def get_templates():
-    return {
-        key: value.pulled_at for key, value in db.get_containers().items()
-    }
-
-
-@app.delete('/remove_template')
-def remove_template(data: Dict[str, str]):
-    try:
-        template_name: str = data['template_name']
-        db.delete_template(template_name)
-        return {'error': False}
-    except:
-        return {'error': True}, 400
-
-
-@app.get('/live')
-def is_live():
-    return Response('OK', 200) if context.s3_client is not None else Response('KO', 402)
+app = make_connector(Template)
