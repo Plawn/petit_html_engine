@@ -4,11 +4,11 @@ COPY ./requirements.txt /api/requirements.txt
 
 WORKDIR /api
 
+RUN apt-get install wkhtmltopdf
+
 RUN pip3 install -r requirements.txt
 
 COPY . /api
-
-RUN mkdir templates
 
 EXPOSE 5000
 
