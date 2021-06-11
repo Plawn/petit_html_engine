@@ -1,0 +1,3 @@
+version: '1'
+extends: petit_python_publipost_connector
+entry: app/server:app

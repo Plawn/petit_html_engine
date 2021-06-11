@@ -13,6 +13,8 @@ def extract_variable(var: str):
     """Extracts variable and removes some stuff
     """
     # remove the '(' and ')'
+    # in the case values in {{data + "test"}}
+    # we want to get the 'data' part
     r = var.split('+')
     r = [
         i
@@ -69,6 +71,7 @@ class Template(BaseTemplate):
         # if need pdf conversion
         # if options is not None and 'pdf' in options:
         if True:
+            # always true for now
             rendered = pdfkit.from_string(rendered, output_path=False)
         return BytesIO.of(rendered)
 
