@@ -4,7 +4,12 @@ COPY ./requirements.txt /api/requirements.txt
 
 WORKDIR /api
 
-RUN apt-get install wkhtmltopdf
+RUN sudo apt update \
+    sudo apt install xfonts-75dpi xfonts-base gvfs colord glew-utils libvisual-0.4-plugins gstreamer1.0-tools opus-tools qt5-image-formats-plugins qtwayland5 qt5-qmltooling-plugins librsvg2-bin lm-sensors\
+    sudo wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb \
+    sudo dpkg -i wkhtmltox_0.12.5-1.stretch_amd64.deb \
+    sudo cp /usr/local/bin/wkhtmltopdf /usr/bin/ \
+    sudo cp /usr/local/bin/wkhtmltoimage /usr/bin/
 
 RUN pip3 install -r requirements.txt
 
