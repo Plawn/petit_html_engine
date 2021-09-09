@@ -57,8 +57,7 @@ class Template(BaseTemplate):
         self.__load_fields()
 
     def __load_fields(self):
-        self.fields = fields = get_placeholder(self.content, local_funcs)
-        return fields
+        self.fields = get_placeholder(self.content, local_funcs)
 
     def __apply_template(self, data: Dict[str, str]) -> str:
         """
