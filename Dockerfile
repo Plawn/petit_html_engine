@@ -6,8 +6,7 @@ WORKDIR /api
 
 RUN  apt update && apt install wkhtmltopdf -y
 
-
-RUN pip3 install -r requirements.txt
+RUN pip install -r requirements.txt
 
 COPY . /api
 
