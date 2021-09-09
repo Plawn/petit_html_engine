@@ -1,3 +1,3 @@
 pdfkit
 jinja2
-petit-python-publipost-connector>=0.1.1
+petit-python-publipost-connector
